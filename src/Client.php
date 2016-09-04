@@ -145,15 +145,15 @@ class Client
     public function getUpdatedRecords($objectType, $startDate, $endDate) {
     $startDate = urlencode(date("Y-m-d\TH:i:s+H:i", strtotime($startDate)));
     $endDate = urlencode(date("Y-m-d\TH:i:s+H:i", strtotime($endDate)));
-    $url = $this->_baseUrl . '/services/data/v37.0/sobjects/' . $objectType . '/updated/?start=' . $startDate . '&end=' . $endDate;
-    $response = parent::makeRequest('get', $url, ['headers' => ['Authorization' => $this->_getAuthHeader()]]);
+    $url = $this->baseUrl . '/services/data/v37.0/sobjects/' . $objectType . '/updated/?start=' . $startDate . '&end=' . $endDate;
+    $response = $this->makeRequest('get', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
 
     $data = json_decode($response->getBody(), true);
     $results = $data['ids'];
 
     return $results;
    }
-   
+
     /**
      * Create a new object in salesforce
      *
