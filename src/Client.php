@@ -134,6 +134,27 @@ class Client
     }
 
     /**
+     * Fetching ids of updated objects through start and end date
+     *
+     * @param string $objectType The object type to update
+     * @param date $startDate The date of to start fetch update objects from
+     * @param date $endDate The end date
+     * @return array
+     * @throws \Exception
+     */
+    public function getUpdatedRecords($objectType, $startDate, $endDate) {
+    $startDate = urlencode(date("Y-m-d\TH:i:s+H:i", strtotime($startDate)));
+    $endDate = urlencode(date("Y-m-d\TH:i:s+H:i", strtotime($endDate)));
+    $url = $this->_baseUrl . '/services/data/v37.0/sobjects/' . $objectType . '/updated/?start=' . $startDate . '&end=' . $endDate;
+    $response = parent::makeRequest('get', $url, ['headers' => ['Authorization' => $this->_getAuthHeader()]]);
+
+    $data = json_decode($response->getBody(), true);
+    $results = $data['ids'];
+
+    return $results;
+   }
+   
+    /**
      * Create a new object in salesforce
      *
      * @param string $object
@@ -263,7 +284,7 @@ class Client
 
             return $response;
         } catch (GuzzleRequestException $e) {
-            
+
             if ($e->getResponse() === null) {
         		throw $e;
         	}
@@ -286,7 +307,7 @@ class Client
         if ($this->accessToken === null) {
     		throw new AuthenticationException(0, "Access token not set");
     	}
-    	
+
         return 'Bearer ' . $this->accessToken->getAccessToken();
     }
 
