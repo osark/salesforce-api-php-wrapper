@@ -22,6 +22,11 @@ class Client
     protected $clientSecret;
 
     /**
+     * @var string
+     */
+    protected $apiUrl;
+
+    /**
      * @var AccessToken
      */
     private $accessToken;
@@ -49,6 +54,7 @@ class Client
         $this->salesforceLoginUrl = $clientConfig->getLoginUrl();
         $this->clientId           = $clientConfig->getClientId();
         $this->clientSecret       = $clientConfig->getClientSecret();
+        $this->apiUrl             = $clientConfig->getApiUrl();
 
         $this->guzzleClient = $guzzleClient;
     }
@@ -61,9 +67,9 @@ class Client
      * @param $clientSecret
      * @return Client
      */
-    public static function create($salesforceLoginUrl, $clientId, $clientSecret)
+    public static function create($salesforceLoginUrl, $clientId, $clientSecret, $apiUrl)
     {
-        return new self(new ClientConfig($salesforceLoginUrl, $clientId, $clientSecret), new \GuzzleHttp\Client);
+        return new self(new ClientConfig($salesforceLoginUrl, $clientId, $clientSecret, $apiUrl), new \GuzzleHttp\Client);
     }
 
     /**
@@ -76,7 +82,7 @@ class Client
      */
     public function getRecord($objectType, $sfId, array $fields)
     {
-        $url      = $this->baseUrl . '/services/data/v20.0/sobjects/' . $objectType . '/' . $sfId . '?fields=' . implode(',', $fields);
+        $url      = $this->baseUrl . "$this->apiUrl/sobjects/" . $objectType . '/' . $sfId . '?fields=' . implode(',', $fields);
         $response = $this->makeRequest('get', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
 
         return json_decode($response->getBody(), true);
@@ -96,7 +102,7 @@ class Client
         if ( ! empty($next_url)) {
             $url = $this->baseUrl . '/' . $next_url;
         } else {
-            $url = $this->baseUrl . '/services/data/v24.0/query/?q=' . urlencode($query);
+            $url = $this->baseUrl . "$this->apiUrl/query/?q=" . urlencode($query);
         }
         $response = $this->makeRequest('get', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
         $data     = json_decode($response->getBody(), true);
@@ -123,7 +129,7 @@ class Client
      */
     public function updateRecord($object, $id, array $data)
     {
-        $url = $this->baseUrl . '/services/data/v20.0/sobjects/' . $object . '/' . $id;
+        $url = $this->baseUrl . "$this->apiUrl/sobjects/" . $object . '/' . $id;
 
         $this->makeRequest('patch', $url, [
             'headers' => ['Content-Type' => 'application/json', 'Authorization' => $this->getAuthHeader()],
@@ -145,7 +151,7 @@ class Client
     public function getUpdatedRecords($objectType, $startDate, $endDate) {
     $startDate = urlencode(date("Y-m-d\TH:i:s+H:i", strtotime($startDate)));
     $endDate = urlencode(date("Y-m-d\TH:i:s+H:i", strtotime($endDate)));
-    $url = $this->baseUrl . '/services/data/v37.0/sobjects/' . $objectType . '/updated/?start=' . $startDate . '&end=' . $endDate;
+    $url = $this->baseUrl . "$this->apiUrl/sobjects/" . $objectType . '/updated/?start=' . $startDate . '&end=' . $endDate;
     $response = $this->makeRequest('get', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
 
     $data = json_decode($response->getBody(), true);
@@ -164,7 +170,7 @@ class Client
      */
     public function createRecord($object, $data)
     {
-        $url = $this->baseUrl . '/services/data/v20.0/sobjects/' . $object . '/';
+        $url = $this->baseUrl . "$this->apiUrl/sobjects/" . $object . '/';
 
         $response     = $this->makeRequest('post', $url, [
             'headers' => ['Content-Type' => 'application/json', 'Authorization' => $this->getAuthHeader()],
@@ -185,7 +191,7 @@ class Client
      */
     public function deleteRecord($object, $id)
     {
-        $url = $this->baseUrl . '/services/data/v20.0/sobjects/' . $object . '/' . $id;
+        $url = $this->baseUrl . "$this->apiUrl/sobjects/" . $object . '/' . $id;
 
         $this->makeRequest('delete', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
 
@@ -267,6 +273,25 @@ class Client
     {
         $this->accessToken = $accessToken;
         $this->baseUrl     = $accessToken->getApiUrl();
+    }
+
+    /**
+     * Set salesforce API Url
+     * @param string $apiUrl
+     */
+    public function setApiUrl(AccessToken $apiUrl)
+    {
+        $this->apiUrl = $apiUrl;
+    }
+
+    public function getAPIs() {
+        $url = $this->baseUrl . '/services/data';
+
+        $response = $this->makeRequest('get', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
+
+        $data = json_decode($response->getBody(), true);
+
+        return $data;
     }
 
     /**
